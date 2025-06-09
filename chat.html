@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Real-Time Chat App</title>
+  <script src="https://unpkg.com/vue@3"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #a5a4a7; /* dark page background */
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .chat-container {
+      background-color: #000; /* black chatbox background */
+      width: 100%;
+      max-width: 500px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(178, 178, 180, 0.1);
+      padding: 20px;
+      color: #eee;
+    }
+
+    .chat-header {
+      text-align: center;
+      font-size: 1.8em;
+      margin-bottom: 15px;
+      font-weight: 600;
+      color: #eee;
+    }
+
+    .messages {
+      height: 300px;
+      overflow-y: auto;
+      border: 1px solid #a5a5ab;
+      border-radius: 8px;
+      padding: 10px;
+      background: #c8c3c9; /* align with black theme */
+      margin-bottom: 10px;
+    }
+
+    .message {
+      margin: 5px 0;
+      padding: 8px 12px;
+      border-radius: 10px;
+      max-width: 70%;
+      word-wrap: break-word;
+      font-size: 0.95em;
+    }
+
+    .own {
+      background-color: #325a7d; /* deep blue for own messages */
+      margin-left: auto;
+      text-align: right;
+      color: #fff;
+    }
+
+    .other {
+      background-color: #aaa9b2; /* dark gray for others */
+      margin-right: auto;
+      color: #ddd;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #adabb4;
+      background: #c1bfcc;
+      color: #eee;
+      font-size: 1em;
+    }
+
+    /* send button in vibrant blue */
+    button {
+      padding: 10px 16px;
+      background: #0052cc;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1em;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #003d99;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="chat-container">
+    <div class="chat-header"> Real-Time Chat</div>
+    <div class="messages" ref="msgBox">
+      <div
+        v-for="(msg, i) in messages"
+        :key="i"
+        class="message"
+        :class="msg.startsWith('You:') ? 'own' : 'other'"
+      >
+        {{ msg }}
+      </div>
+    </div>
+    <div class="input-row">
+      <input v-model="input" @keyup.enter="sendMessage" placeholder="Type a message..." />
+      <button @click="sendMessage">Send</button>
+    </div>
+  </div>
+
+  <script>
+    const { createApp, ref, onMounted } = Vue;
+
+    createApp({
+      setup() {
+        const messages = ref([]);
+        const input = ref('');
+        const msgBox = ref(null);
+        let socket;
+
+        const scrollToBottom = () => {
+          setTimeout(() => {
+            msgBox.value.scrollTop = msgBox.value.scrollHeight;
+          }, 50);
+        };
+
+        const sendMessage = () => {
+          if (input.value.trim()) {
+            socket.send(input.value);
+            messages.value.push('You: ' + input.value);
+            input.value = '';
+            scrollToBottom();
+          }
+        };
+
+        onMounted(() => {
+          socket = new WebSocket('ws://localhost:8080');
+          socket.onmessage = (e) => {
+            messages.value.push('Stranger: ' + e.data);
+            scrollToBottom();
+          };
+        });
+
+        return { messages, input, sendMessage, msgBox };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
